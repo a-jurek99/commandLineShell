@@ -12,8 +12,11 @@ import java.util.ArrayList;
 public class Parser {
   String input;
   int pos;
+  int parenLevel;
+  boolean background;
   // Used to tell ArrayList method which array type to return
   final String[] STRING_ARR = new String[0];
+  final ProcessNode[] NODE_ARR = new ProcessNode[0];
 
   /**
    * Construct a parser
@@ -29,7 +32,12 @@ public class Parser {
    * Parse the input into a process tree
    */
   public ProcessNode parse() throws SyntaxException {
-    return this.parseExpression();
+    ProcessNode root = this.parseExpression();
+    if (parenLevel != 0) {
+      throw new SyntaxException("Mismatched parentheses.", pos, input);
+    }
+    root.setBackground(background);
+    return root;
   }
 
   /**
@@ -37,22 +45,32 @@ public class Parser {
    * after it, optionally enclosed in parentheses.s
    */
   ProcessNode parseExpression() throws SyntaxException {
-    ArrayList<String> args = new ArrayList<>();
     Token tok = this.next();
     ProcessNode node;
     // If we find an open paren, recuse into ourselves to find the subexpression
     // Closing the paren is handled in parseSpecialCharacter
     if (tok.type == Token.Type.OpenParen) {
+      parenLevel++;
       node = this.parseExpression();
       tok = this.next();
     } else {
-      while (tok != null && tok.type == Token.Type.String) {
-        args.add(tok.value);
-        tok = this.next();
-      }
-      node = new ShellProcess(args.toArray(STRING_ARR));
+      State state = this.parseCommand(tok);
+      node = state.curNode;
+      tok = state.nextToken;
     }
     return this.parseSpecialCharacter(node, tok);
+  }
+
+  /**
+   * Parse a command, returning the state after the parsing is finished
+   */
+  State parseCommand(Token tok) throws SyntaxException {
+    ArrayList<String> args = new ArrayList<>();
+    while (tok != null && tok.type == Token.Type.String) {
+      args.add(tok.value);
+      tok = this.next();
+    }
+    return new State(tok, new ShellProcess(args.toArray(STRING_ARR)));
   }
 
   /**
@@ -67,6 +85,7 @@ public class Parser {
       return node;
     switch (chr.type) {
       case CloseParen:
+        parenLevel--;
         return node;
       case Pipe:
         ProcessNode child = this.parseExpression();
@@ -87,9 +106,36 @@ public class Parser {
         break;
       case ExecuteParallel:
       case ExecuteSequential:
-        node = new ProcessGroup(new ProcessNode[] { node, this.parseExpression() },
-            chr.type == Token.Type.ExecuteSequential);
-        break;
+        ArrayList<ProcessNode> members = new ArrayList<>();
+        members.add(node);
+        Token tok = this.next();
+        if (tok == null) {
+          if (chr.type == Token.Type.ExecuteParallel) {
+            background = true;
+            return node;
+          } else {
+            throw new SyntaxException("Unexpected end of input.", pos, input);
+          }
+        }
+        while (tok != null) {
+          if (tok.type == Token.Type.OpenParen) {
+            parenLevel++;
+            node = this.parseExpression();
+            tok = this.next();
+          } else {
+            State state = this.parseCommand(tok);
+            tok = state.nextToken;
+            node = state.curNode;
+          }
+          if (tok == null || tok.type == chr.type) {
+            members.add(node);
+            tok = this.next();
+          } else {
+            members.add(this.parseSpecialCharacter(node, tok));
+            break;
+          }
+        }
+        return new ProcessGroup(members.toArray(NODE_ARR), chr.type == Token.Type.ExecuteSequential);
       default:
         throw new SyntaxException("Unexpected token '" + chr.value + "'.", pos - chr.value.length(), input);
     }
@@ -138,26 +184,31 @@ public class Parser {
         return new Token(Token.Type.RedirectOutput, chr);
       case '"':
       case '\'': {
-        // TODO: Allow escaping quotes with backslashes
         pos++;
         int startPos = pos;
-        while (input.charAt(pos) != chr) {
+        char c = input.charAt(pos);
+        char prevC = c;
+        while (prevC == '\\' || c != chr) {
           pos++;
           if (pos >= input.length())
             break;
+          prevC = c;
+          c = input.charAt(pos);
         }
         pos++;
-        return new Token(Token.Type.String, input.substring(startPos, pos - 1));
+        return new Token(Token.Type.String,
+            input.substring(startPos, pos - 1).replace("\\" + chr, new String(new char[] { chr })));
       }
       default: {
         int startPos = pos;
-        while (input.charAt(pos) != ' ') {
+        char c = input.charAt(pos);
+        while (c != ' ' && c != '(' && c != ')' && c != '&' && c != '<' && c != '>') {
           pos++;
           if (pos >= input.length())
             break;
+          c = input.charAt(pos);
         }
-        pos++;
-        return new Token(Token.Type.String, input.substring(startPos, pos - 1));
+        return new Token(Token.Type.String, input.substring(startPos, pos));
       }
     }
   }
@@ -214,6 +265,20 @@ public class Parser {
         chars[i] = ' ';
       String indent = new String(chars);
       return "> " + input + "\n> " + indent + "^" + "\n> " + indent + this.getLocalizedMessage();
+    }
+  }
+
+  /**
+   * Stores a state snapshot of the parser. Used by parseCommand to return all
+   * necessary information
+   */
+  static class State {
+    Token nextToken;
+    ProcessNode curNode;
+
+    State(Token nextToken, ProcessNode curNode) {
+      this.nextToken = nextToken;
+      this.curNode = curNode;
     }
   }
 }

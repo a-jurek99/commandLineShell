@@ -7,6 +7,7 @@ public abstract class ProcessNode {
   String outputFile;
   boolean appendOutput;
   ProcessNode pipeTo;
+  boolean background;
 
   /**
    * Set an input file that this node is using
@@ -36,6 +37,16 @@ public abstract class ProcessNode {
    */
   public void setPipe(ProcessNode pipeTo) {
     this.pipeTo = pipeTo;
+  }
+
+  /**
+   * Set if this process should run in the background or not
+   * 
+   * @param background True if this process should run in the background, false if
+   *                   not
+   */
+  public void setBackground(boolean background) {
+    this.background = background;
   }
 
   abstract void buildString(StringBuilder builder);
