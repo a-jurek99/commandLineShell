@@ -5,20 +5,36 @@
  * and command3 is executed in parallel to both.
  */
 public class ProcessGroup extends ProcessNode {
-  boolean sequential;
+  Type type;
   ProcessNode[] members;
 
-  public ProcessGroup(ProcessNode[] members, boolean sequential) {
+  public ProcessGroup(ProcessNode[] members, Type type) {
     this.members = members;
-    this.sequential = sequential;
+    this.type = type;
   }
 
   @Override
   void buildString(StringBuilder builder) {
-    builder.append(sequential ? "&&" : "&");
+    switch (type) {
+      case Parallel:
+        builder.append('&');
+        break;
+      case Sequential:
+        builder.append("&&");
+        break;
+      case Pipe:
+        builder.append('|');
+        break;
+    }
     for (int i = 0; i < members.length; i++) {
       builder.append(' ');
       builder.append(members[i].toString());
     }
+  }
+
+  static enum Type {
+    Parallel, // Built using '&', runs all processes in parellel
+    Sequential, // Built using '&&', runs each process in order
+    Pipe, // Built using '|', runs each process with the output from the previous
   }
 }

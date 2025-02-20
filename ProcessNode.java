@@ -6,7 +6,6 @@ public abstract class ProcessNode {
   String inputFile;
   String outputFile;
   boolean appendOutput;
-  ProcessNode pipeTo;
   boolean background;
 
   /**
@@ -31,15 +30,6 @@ public abstract class ProcessNode {
   }
 
   /**
-   * Set a pipe from this node to another
-   * 
-   * @param pipeTo The process node to pipe this node's output to
-   */
-  public void setPipe(ProcessNode pipeTo) {
-    this.pipeTo = pipeTo;
-  }
-
-  /**
    * Set if this process should run in the background or not
    * 
    * @param background True if this process should run in the background, false if
@@ -56,17 +46,13 @@ public abstract class ProcessNode {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
     this.buildString(builder);
-    if (pipeTo != null) {
-      builder.append(" | ");
-      builder.append(pipeTo.toString());
-    }
     if (this.inputFile != null) {
       builder.append(" < ");
       builder.append(this.inputFile);
     }
     if (this.outputFile != null) {
       builder.append(' ');
-      builder.append(this.appendOutput ? "<<" : "<");
+      builder.append(this.appendOutput ? ">>" : ">");
       builder.append(' ');
       builder.append(this.outputFile);
     }

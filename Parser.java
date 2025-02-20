@@ -14,6 +14,7 @@ public class Parser {
   int pos;
   int parenLevel;
   boolean background;
+  Token curToken;
   // Used to tell ArrayList method which array type to return
   final String[] STRING_ARR = new String[0];
   final ProcessNode[] NODE_ARR = new ProcessNode[0];
@@ -32,7 +33,8 @@ public class Parser {
    * Parse the input into a process tree
    */
   public ProcessNode parse() throws SyntaxException {
-    ProcessNode root = this.parseExpression();
+    this.next();
+    ProcessNode root = this.parseMaybeGroup();
     if (parenLevel != 0) {
       throw new SyntaxException("Mismatched parentheses.", pos, input);
     }
@@ -41,147 +43,168 @@ public class Parser {
   }
 
   /**
-   * Parse an expression, which is a command with optional special characters
-   * after it, optionally enclosed in parentheses.s
+   * Parse something that could either be a group or an expression
+   */
+  ProcessNode parseMaybeGroup() throws SyntaxException {
+    ProcessNode left = this.parseExpression();
+    if (curToken == null) {
+      return left;
+    } else if (curToken.isGrouping()) {
+      return this.parseGroup(left);
+    } else if (curToken.type == Token.Type.CloseParen) {
+      parenLevel--;
+      this.next();
+    }
+    return left;
+  }
+
+  /**
+   * Parse an expression, which is either a group enclosed in parentheses or a
+   * command with optional redirects
    */
   ProcessNode parseExpression() throws SyntaxException {
-    Token tok = this.next();
     ProcessNode node;
-    // If we find an open paren, recuse into ourselves to find the subexpression
-    // Closing the paren is handled in parseSpecialCharacter
-    if (tok.type == Token.Type.OpenParen) {
+    // If we find an open paren, go back to the top level (parseMaybeGroup), which
+    // handles the closing
+    if (curToken.type == Token.Type.OpenParen) {
       parenLevel++;
-      node = this.parseExpression();
-      tok = this.next();
+      this.next();
+      node = this.parseMaybeGroup();
+    } else if (curToken.type == Token.Type.String) {
+      node = this.parseCommand();
     } else {
-      State state = this.parseCommand(tok);
-      node = state.curNode;
-      tok = state.nextToken;
+      throw this.makeUnexpectedToken();
     }
-    return this.parseSpecialCharacter(node, tok);
+    this.maybeParseRedirects(node);
+    return node;
   }
 
   /**
-   * Parse a command, returning the state after the parsing is finished
+   * Parse a command, which is just a series of one or more strings
    */
-  State parseCommand(Token tok) throws SyntaxException {
+  ProcessNode parseCommand() throws SyntaxException {
     ArrayList<String> args = new ArrayList<>();
-    while (tok != null && tok.type == Token.Type.String) {
-      args.add(tok.value);
-      tok = this.next();
+    while (curToken != null && curToken.type == Token.Type.String) {
+      args.add(curToken.value);
+      this.next();
     }
-    return new State(tok, new ShellProcess(args.toArray(STRING_ARR)));
+    return new ShellProcess(args.toArray(STRING_ARR));
   }
 
-  /**
-   * Parse a special character. This method's basic job is to determine what to do
-   * based on token type.
-   * 
-   * @param node The node that came before this special character.
-   * @param chr  The special character in question
-   */
-  ProcessNode parseSpecialCharacter(ProcessNode node, Token chr) throws SyntaxException {
-    if (chr == null)
-      return node;
-    switch (chr.type) {
-      case CloseParen:
-        parenLevel--;
-        return node;
-      case Pipe:
-        ProcessNode child = this.parseExpression();
-        node.setPipe(child);
-        break;
-      case RedirectInput:
-      case RedirectOutput:
-      case RedirectOutputAppend:
-        Token file = this.next();
-        if (file.type != Token.Type.String) {
-          throw new SyntaxException("Unexpected token '" + file.value + "'.", pos - file.value.length(), input);
-        }
-        if (chr.type == Token.Type.RedirectInput) {
-          node.setInput(file.value);
+  void maybeParseRedirects(ProcessNode node) throws SyntaxException {
+    while (curToken != null && curToken.isRedirect()) {
+      Token.Type type = curToken.type;
+      this.next();
+      if (curToken.type != Token.Type.String) {
+        throw this.makeUnexpectedToken();
+      }
+      if (type == Token.Type.RedirectInput) {
+        node.setInput(curToken.value);
+      } else {
+        node.setOutput(curToken.value, type == Token.Type.RedirectOutputAppend);
+      }
+      this.next();
+    }
+  }
+
+  ProcessNode parseGroup(ProcessNode left) throws SyntaxException {
+    ArrayList<ProcessNode> members = new ArrayList<>();
+    members.add(left);
+    ProcessGroup.Type groupType = getGroupType(curToken.type);
+    this.next();
+    while (true) {
+      if (curToken == null) {
+        if (groupType == ProcessGroup.Type.Parallel) {
+          background = true;
+          break;
         } else {
-          node.setOutput(file.value, chr.type == Token.Type.RedirectOutputAppend);
+          throw new SyntaxException("Unexpected end of input.", pos, input);
         }
-        break;
-      case ExecuteParallel:
-      case ExecuteSequential:
-        ArrayList<ProcessNode> members = new ArrayList<>();
+      }
+      ProcessNode node = this.parseExpression();
+      if (curToken == null || curToken.type == Token.Type.CloseParen) {
+        if (curToken != null) {
+          parenLevel--;
+          this.next();
+        }
         members.add(node);
-        Token tok = this.next();
-        if (tok == null) {
-          if (chr.type == Token.Type.ExecuteParallel) {
-            background = true;
-            return node;
-          } else {
-            throw new SyntaxException("Unexpected end of input.", pos, input);
-          }
+        break;
+      } else if (curToken.isGrouping()) {
+        ProcessGroup.Type curType = getGroupType(curToken.type);
+        if (curType == groupType) {
+          members.add(node);
+        } else {
+          members.add(this.parseGroup(node));
+          break;
         }
-        while (tok != null) {
-          if (tok.type == Token.Type.OpenParen) {
-            parenLevel++;
-            node = this.parseExpression();
-            tok = this.next();
-          } else {
-            State state = this.parseCommand(tok);
-            tok = state.nextToken;
-            node = state.curNode;
-          }
-          if (tok == null || tok.type == chr.type) {
-            members.add(node);
-            tok = this.next();
-          } else {
-            members.add(this.parseSpecialCharacter(node, tok));
-            break;
-          }
-        }
-        return new ProcessGroup(members.toArray(NODE_ARR), chr.type == Token.Type.ExecuteSequential);
-      default:
-        throw new SyntaxException("Unexpected token '" + chr.value + "'.", pos - chr.value.length(), input);
+      } else {
+        throw this.makeUnexpectedToken();
+      }
+      this.next();
     }
-    return this.parseSpecialCharacter(node, this.next());
+    if (members.size() == 1) {
+      return members.get(0);
+    }
+    return new ProcessGroup(members.toArray(NODE_ARR), groupType);
+  }
+
+  ProcessGroup.Type getGroupType(Token.Type type) throws SyntaxException {
+    switch (type) {
+      case Pipe:
+        return ProcessGroup.Type.Pipe;
+      case ExecuteParallel:
+        return ProcessGroup.Type.Parallel;
+      case ExecuteSequential:
+        return ProcessGroup.Type.Sequential;
+      default:
+        throw new SyntaxException("This should be impossible.", pos, input);
+    }
+  }
+
+  SyntaxException makeUnexpectedToken() {
+    return new SyntaxException("Unexpected token '" + curToken.value + "'.", pos - curToken.value.length(), input);
   }
 
   /**
-   * Get the next token in the input stream
+   * Move to the next token in the input stream
    */
   Token next() {
     if (pos >= input.length())
-      return null;
+      return curToken = null;
     char chr = input.charAt(pos);
     while (chr == ' ') {
       pos++;
       if (pos >= input.length())
-        return null;
+        return curToken = null;
       chr = input.charAt(pos);
     }
     switch (chr) {
       case '|':
         pos++;
-        return new Token(Token.Type.Pipe, chr);
+        return curToken = new Token(Token.Type.Pipe, chr);
       case '<':
         pos++;
-        return new Token(Token.Type.RedirectInput, chr);
+        return curToken = new Token(Token.Type.RedirectInput, chr);
       case '(':
         pos++;
-        return new Token(Token.Type.OpenParen, chr);
+        return curToken = new Token(Token.Type.OpenParen, chr);
       case ')':
         pos++;
-        return new Token(Token.Type.CloseParen, chr);
+        return curToken = new Token(Token.Type.CloseParen, chr);
       case '&':
         if (pos + 1 < input.length() && input.charAt(pos + 1) == '&') {
           pos += 2;
-          return new Token(Token.Type.ExecuteSequential, "&&");
+          return curToken = new Token(Token.Type.ExecuteSequential, "&&");
         }
         pos++;
-        return new Token(Token.Type.ExecuteParallel, chr);
+        return curToken = new Token(Token.Type.ExecuteParallel, chr);
       case '>':
         if (pos + 1 < input.length() && input.charAt(pos + 1) == '>') {
           pos += 2;
-          return new Token(Token.Type.RedirectOutputAppend, ">>");
+          return curToken = new Token(Token.Type.RedirectOutputAppend, ">>");
         }
         pos++;
-        return new Token(Token.Type.RedirectOutput, chr);
+        return curToken = new Token(Token.Type.RedirectOutput, chr);
       case '"':
       case '\'': {
         pos++;
@@ -196,8 +219,8 @@ public class Parser {
           c = input.charAt(pos);
         }
         pos++;
-        return new Token(Token.Type.String,
-            input.substring(startPos, pos - 1).replace("\\" + chr, new String(new char[] { chr })));
+        String value = input.substring(startPos, pos - 1).replace("\\" + chr, new String(new char[] { chr }));
+        return curToken = new Token(Token.Type.String, value);
       }
       default: {
         int startPos = pos;
@@ -208,7 +231,7 @@ public class Parser {
             break;
           c = input.charAt(pos);
         }
-        return new Token(Token.Type.String, input.substring(startPos, pos));
+        return curToken = new Token(Token.Type.String, input.substring(startPos, pos));
       }
     }
   }
@@ -237,6 +260,14 @@ public class Parser {
     Token(Type type, char value) {
       this.type = type;
       this.value = new String(new char[] { value });
+    }
+
+    boolean isRedirect() {
+      return type == Type.RedirectInput || type == Type.RedirectOutput || type == Type.RedirectOutputAppend;
+    }
+
+    boolean isGrouping() {
+      return type == Type.Pipe || type == Type.ExecuteParallel || type == Type.ExecuteSequential;
     }
 
     @Override
