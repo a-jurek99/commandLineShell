@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class CommandShell {
@@ -8,11 +7,15 @@ public class CommandShell {
             System.out.print("this is our command line: ");
             String userInput = scan.nextLine();
             Parser parser = new Parser(userInput);
-            ArrayList<Parser.Token> tokens = parser.parse();
+            try {
+                ProcessNode root = parser.parse();
+                System.out.println(root.toString());
+            } catch (Parser.SyntaxException ex) {
+                System.err.println(ex.toString());
+            }
             // get return value(s) from parser
             // pass to executor
             // get return from executor
-            System.out.println(tokens);
             break;
         }
         scan.close();
