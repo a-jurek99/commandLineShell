@@ -91,6 +91,10 @@ public class Parser {
     return new ShellProcess(args.toArray(STRING_ARR));
   }
 
+  /**
+   * Parse the redirects for another node, which is a series of '<', '>', or '>>'
+   * with files after each
+   */
   void maybeParseRedirects(ProcessNode node) throws SyntaxException {
     while (curToken != null && curToken.isRedirect()) {
       Token.Type type = curToken.type;
@@ -107,6 +111,10 @@ public class Parser {
     }
   }
 
+  /**
+   * Parse a group, which is a series of expressions seperated by '&', '&&', or
+   * '|'
+   */
   ProcessNode parseGroup(ProcessNode left) throws SyntaxException {
     ArrayList<ProcessNode> members = new ArrayList<>();
     members.add(left);
@@ -148,6 +156,11 @@ public class Parser {
     return new ProcessGroup(members.toArray(NODE_ARR), groupType);
   }
 
+  /**
+   * Get the type of the group formed by a given token type
+   * 
+   * @param type The type of the token forming the group
+   */
   ProcessGroup.Type getGroupType(Token.Type type) throws SyntaxException {
     switch (type) {
       case Pipe:
@@ -161,6 +174,9 @@ public class Parser {
     }
   }
 
+  /**
+   * Make an unexpected token syntax exception based on the current token
+   */
   SyntaxException makeUnexpectedToken() {
     return new SyntaxException("Unexpected token '" + curToken.value + "'.", pos - curToken.value.length(), input);
   }
@@ -262,10 +278,16 @@ public class Parser {
       this.value = new String(new char[] { value });
     }
 
+    /**
+     * Does this token redirect input or output?
+     */
     boolean isRedirect() {
       return type == Type.RedirectInput || type == Type.RedirectOutput || type == Type.RedirectOutputAppend;
     }
 
+    /**
+     * Does this token form groups?
+     */
     boolean isGrouping() {
       return type == Type.Pipe || type == Type.ExecuteParallel || type == Type.ExecuteSequential;
     }
@@ -296,20 +318,6 @@ public class Parser {
         chars[i] = ' ';
       String indent = new String(chars);
       return "> " + input + "\n> " + indent + "^" + "\n> " + indent + this.getLocalizedMessage();
-    }
-  }
-
-  /**
-   * Stores a state snapshot of the parser. Used by parseCommand to return all
-   * necessary information
-   */
-  static class State {
-    Token nextToken;
-    ProcessNode curNode;
-
-    State(Token nextToken, ProcessNode curNode) {
-      this.nextToken = nextToken;
-      this.curNode = curNode;
     }
   }
 }
