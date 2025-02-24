@@ -1,5 +1,5 @@
 import java.io.File;
-import java.util.HashSet;
+import java.util.*;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 /*
@@ -10,18 +10,16 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 public class Utilities {
 
     private static HashSet<String> fileSet;
+    private static String[] smallestLevFiles;
+    private static int[] smallestLevDists;
 
-    public void unknownFileString(String badFile) {
-       // String unfoundFile = badFile;
-       String test = "testing";
-    }
 
     public static void main(String[] args) {
         String path = System.getenv("PATH");
         String[] splitPath = path.split(";");
         fileSet = new HashSet<>();
         parseDir(splitPath);
-        smallestLevList();
+        getLevDists();
     }
 
     //takes each directory from the PATH environment and passes it to build fileSet
@@ -42,8 +40,28 @@ public class Utilities {
         }
     }
 
-    //TODO: figure out how to properly impliment the LevenshtienDistance class
-    private static void smallestLevList() {
-        //LevenshteinDistance distance = new LevenshteinDistance();
+    //TODO: figure out how to impliment levenshtienDistance methods
+    private static void getLevDists() {
+        //I cannot figure out how to impliment the levenshtienDistance class :(
+        smallestLevFiles = new String[5];
+        smallestLevDists = new int[smallestLevFiles.length];
+        for(String flnm: fileSet) {
+            //int distance = levenshtienDistance.apply(flnm, userInput);
+            int distance = (int)(Math.random() * 100); //placeholder for lev distance
+            closest5(flnm, distance);           
+        }
+        for(String i: smallestLevFiles) {
+            System.out.println(i);
+        }
+    }
+
+    private static void closest5(String flnm, int levDist) {
+       for(int i = 0; i < smallestLevFiles.length; i++) {
+            if(smallestLevFiles[i] == null || smallestLevDists[i] > levDist) { //if the given element is null or the lev distance is bigger than the given value
+                smallestLevDists[i] = levDist; //replace
+                smallestLevFiles[i] = flnm;
+                break;
+            }
+       }
     }
 }
