@@ -14,7 +14,10 @@ public class CommandShell {
                 System.out.println(ex.toString());
                 continue;
             }
-            System.out.println(root.toString());
+            if (root == null) {
+                continue;
+            }
+            // System.out.println(root.toString());
             Executor executor = new Executor(root);
             boolean shouldExit = executor.execute();
             if (shouldExit) {

@@ -38,7 +38,8 @@ public class Parser {
     if (parenLevel != 0) {
       throw new SyntaxException("Mismatched parentheses.", pos, input);
     }
-    root.setBackground(background);
+    if (root != null)
+      root.setBackground(background);
     return root;
   }
 
@@ -66,7 +67,9 @@ public class Parser {
     ProcessNode node;
     // If we find an open paren, go back to the top level (parseMaybeGroup), which
     // handles the closing
-    if (curToken.type == Token.Type.OpenParen) {
+    if (curToken == null) {
+      return null;
+    } else if (curToken.type == Token.Type.OpenParen) {
       parenLevel++;
       this.next();
       node = this.parseMaybeGroup();
