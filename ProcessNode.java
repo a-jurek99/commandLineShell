@@ -1,12 +1,34 @@
 /**
  * Represents a node in the process tree. This can be given files for input or
- * output, along with told to pipe to another node.
+ * output, along with being told to run as a background process. Note that only
+ * the root node of the tree should have the background flag set.
  */
 public abstract class ProcessNode {
   String inputFile;
   String outputFile;
   boolean appendOutput;
   boolean background;
+
+  abstract Executable resolve(Executor executor);
+
+  public Executable execute(Executor executor) {
+    Executable executable = this.resolve(executor);
+    if (executable == null)
+      return null;
+    if (inputFile != null) {
+      executable.redirectInput(inputFile);
+    }
+    if (outputFile != null) {
+      executable.redirectOutput(outputFile, appendOutput);
+    }
+    try {
+      executable.start();
+    } catch (Executor.ExecutionException ex) {
+      System.out.println("ERROR: " + ex.toString());
+      return null;
+    }
+    return executable;
+  }
 
   /**
    * Set an input file that this node is using

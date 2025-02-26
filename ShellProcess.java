@@ -20,6 +20,18 @@ public class ShellProcess extends ProcessNode {
   }
 
   @Override
+  Executable resolve(Executor executor) {
+    Executable executable;
+    try {
+      executable = executor.resolveCommand(command, arguments);
+    } catch (Executor.ExecutionException ex) {
+      System.out.println("ERROR: " + ex.toString());
+      return null;
+    }
+    return executable;
+  }
+
+  @Override
   void buildString(StringBuilder builder) {
     builder.append(command);
     for (int i = 0; i < arguments.length; i++) {

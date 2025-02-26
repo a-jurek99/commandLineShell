@@ -14,6 +14,16 @@ public class ProcessGroup extends ProcessNode {
   }
 
   @Override
+  Executable resolve(Executor executor) {
+    Executable[] executables = new Executable[members.length];
+    for (int i = 0; i < members.length; i++) {
+      executables[i] = members[i].resolve(executor);
+    }
+    Executable executable = new GroupExecutable(type, executables);
+    return executable;
+  }
+
+  @Override
   void buildString(StringBuilder builder) {
     switch (type) {
       case Parallel:

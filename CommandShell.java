@@ -4,19 +4,22 @@ public class CommandShell {
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
         while (true) {
-            System.out.print("this is our command line: ");
+            System.out.print("> ");
             String userInput = scan.nextLine();
             Parser parser = new Parser(userInput);
+            ProcessNode root;
             try {
-                ProcessNode root = parser.parse();
-                System.out.println(root.toString());
+                root = parser.parse();
             } catch (Parser.SyntaxException ex) {
-                System.err.println(ex.toString());
+                System.out.println(ex.toString());
+                continue;
             }
-            // get return value(s) from parser
-            // pass to executor
-            // get return from executor
-            break;
+            System.out.println(root.toString());
+            Executor executor = new Executor(root);
+            boolean shouldExit = executor.execute();
+            if (shouldExit) {
+                break;
+            }
         }
         scan.close();
     }
