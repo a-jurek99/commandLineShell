@@ -21,12 +21,6 @@ public abstract class ProcessNode {
     if (outputFile != null) {
       executable.redirectOutput(outputFile, appendOutput);
     }
-    try {
-      executable.start();
-    } catch (Executor.ExecutionException ex) {
-      System.out.println("ERROR: " + ex.toString());
-      return null;
-    }
     return executable;
   }
 

@@ -23,6 +23,12 @@ public class Executor {
   public boolean execute() {
     Executable root = rootNode.execute(this);
     try {
+      root.start();
+    } catch (Executor.ExecutionException ex) {
+      System.out.println("ERROR: " + ex.toString());
+      return false;
+    }
+    try {
       root.waitFor();
     } catch (InterruptedException ex) {
       // Just silently fail
