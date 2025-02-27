@@ -23,6 +23,7 @@ Besides not being a programming language, there are a few other differences from
 3. Redirection of groups (except pipes) is treated the same as providing the same redirections to each member. In bash, `(cat in1 && cat in2) > out1` will result in `out1` containg the contents of `in1` and `in2` one after the other, and `(cat in1 > out1 && cat in2 > out2) > out3` will result in `out1` containing the contents of `in1`, `out2` containing the contents of `in2`, and `out3` being blank. In this shell, the same commands will result in `out1` and `out3` containing the contents of `in2`.
 4. The shell will error if a command is incomplete (for example, it ends with a `|` or a `&&`)
 5. `exit` will not exit immediately, but rather once the current command is finished. For example, `exit && ls` will still list the contents of the current directory before exiting.
+6. When running multiple commands in parellel (`command1 & command2`), the shell will wait for both to complete before returning control to the user (bash waits only on the final command). To run multiple commands in parellel in the background, use a trailing `&` (`command1 & command2 &`).
 
 ## Built-in Commands
 

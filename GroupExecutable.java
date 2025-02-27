@@ -41,9 +41,6 @@ public class GroupExecutable implements Executable {
     if (type == ProcessGroup.Type.Parallel) {
       for (int i = 0; i < members.length; i++) {
         members[i].start();
-        // Print information about the threads that were started, to help with killing
-        // them if desired
-        System.out.println(members[i].threadInfo());
       }
     } else {
       members[0].start();
@@ -109,12 +106,24 @@ public class GroupExecutable implements Executable {
   @Override
   public String threadInfo() {
     StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < members.length - 2; i++) {
-      builder.append(members[i].threadInfo());
-      builder.append(", ");
+    if (members.length == 0) {
+      // This shouldn't ever happen, but just in case
+      builder.append("<NONE>");
+    } else if (members.length == 1) {
+      // This also shouldn't ever happen, but again, just in case
+      builder.append(members[0].threadInfo());
+    } else if (members.length == 2) {
+      builder.append(members[0].threadInfo());
+      builder.append(" and ");
+      builder.append(members[1].threadInfo());
+    } else {
+      for (int i = 0; i < members.length - 2; i++) {
+        builder.append(members[i].threadInfo());
+        builder.append(", ");
+      }
+      builder.append(", and ");
+      builder.append(members[members.length - 1].threadInfo());
     }
-    builder.append(", and");
-    builder.append(members[members.length - 1].threadInfo());
     return builder.toString();
   }
 
