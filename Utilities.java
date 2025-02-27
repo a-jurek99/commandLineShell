@@ -14,7 +14,7 @@ public class Utilities {
     private static int[] smallestLevDists;
 
     //intakes a string of an attempted file name, parses through PATH and determines closest matches of files that do exist
-    public static String[] findBestMatch(String userInput) {
+    public static String findBestMatch(String userInput) {
         String path = System.getenv("PATH"); 
         String[] splitPath = path.split(":"); //string array of all directories in the PATH env
         fileSet = new HashSet<>();
@@ -22,14 +22,13 @@ public class Utilities {
         smallestLevFiles = new String[5]; //will hold the 5 closest existing file name matches based on lev distance
         smallestLevDists = new int[smallestLevFiles.length];
         getLevDists(userInput);
-        return smallestLevFiles;
+        String didYouMean = buildFileString();
+        return didYouMean;
     }
 
     public static void main(String[] args) { //for testing
-        String[] test = findBestMatch("unbuntu");
-        for(String i: test) {
-            System.out.println(i);  
-        }
+        String test = findBestMatch("unbuntu");
+        System.out.println(test);
     }
 
     //takes each directory from the PATH environment and passes it to build fileSet
@@ -89,5 +88,14 @@ public class Utilities {
             }
         }
         return lgstIndex;
+    }
+
+    //turns the array of the closest file names into a single string
+    private static String buildFileString() {
+        StringBuilder builder = new StringBuilder("\nDid you mean: ");
+        for(String i: smallestLevFiles) {
+            builder.append("\n  " + i);
+        }
+        return builder.substring(0);
     }
 }
