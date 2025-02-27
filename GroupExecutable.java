@@ -30,6 +30,7 @@ public class GroupExecutable implements Executable {
     if (type == ProcessGroup.Type.Parallel) {
       for (int i = 0; i < members.length; i++) {
         members[i].start();
+        System.out.println(members[i].threadInfo());
       }
     } else {
       members[0].start();
@@ -90,6 +91,18 @@ public class GroupExecutable implements Executable {
     } else {
       members[members.length - 1].redirectOutput(file, append);
     }
+  }
+
+  @Override
+  public String threadInfo() {
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < members.length - 2; i++) {
+      builder.append(members[i].threadInfo());
+      builder.append(", ");
+    }
+    builder.append(", and");
+    builder.append(members[members.length - 1].threadInfo());
+    return builder.toString();
   }
 
 }

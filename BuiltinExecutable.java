@@ -85,6 +85,11 @@ public class BuiltinExecutable implements Executable, Runnable {
   }
 
   @Override
+  public String threadInfo() {
+    return "[" + thread.getId() + "] " + thread.getName() + " (" + thread.getState() + ")";
+  }
+
+  @Override
   public void run() {
     Iterable<String> output;
     if (cmd.equals("cd")) {
@@ -158,8 +163,13 @@ public class BuiltinExecutable implements Executable, Runnable {
   }
 
   private Iterable<String> history() {
-    exitValue = Optional.of(1);
-    return Arrays.asList("ERROR: Not implemented: history\n");
+    File historyFile = executor.readHistory();
+    if (historyFile == null) {
+      exitValue = Optional.of(1);
+      return Arrays.asList();
+    }
+    exitValue = Optional.of(0);
+    return new FileIterable(historyFile);
   }
 
   private Iterable<String> help() {

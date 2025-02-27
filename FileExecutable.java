@@ -50,4 +50,9 @@ public class FileExecutable implements Executable {
   public void redirectInput(String file) {
     builder.redirectInput(new File(file));
   }
+
+  @Override
+  public String threadInfo() {
+    return process.toString();
+  }
 }

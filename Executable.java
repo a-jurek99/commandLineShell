@@ -29,4 +29,9 @@ public interface Executable {
    * overwrite or append to an existing file
    */
   public void redirectOutput(String file, boolean append);
+
+  /**
+   * Get information about the thread running this Executable
+   */
+  public String threadInfo();
 }

@@ -7,6 +7,7 @@ public class CommandShell {
         while (true) {
             System.out.print("> ");
             String userInput = scan.nextLine();
+            executor.addHistory(userInput);
             Parser parser = new Parser(userInput);
             ProcessNode root;
             try {
