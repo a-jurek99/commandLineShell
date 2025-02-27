@@ -10,16 +10,26 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 public class Utilities {
 
     private static HashSet<String> fileSet;
-    private static String[] smallestLevFiles;
+    public static String[] smallestLevFiles;
     private static int[] smallestLevDists;
 
-
-    public static void main(String[] args) {
+    //intakes a string of an attempted file name, parses through PATH and determines closest matches of files that do exist
+    public static String[] findBestMatch(String userInput) {
         String path = System.getenv("PATH");
-        String[] splitPath = path.split(";");
+        String[] splitPath = path.split(":");
         fileSet = new HashSet<>();
         parseDir(splitPath);
+        smallestLevFiles = new String[5];
+        smallestLevDists = new int[smallestLevFiles.length];
         getLevDists();
+        return smallestLevFiles;
+    }
+
+    public static void main(String[] args) { //for testing
+        String[] test = findBestMatch("bubbbles.scr");
+        for(String i: test) {
+            System.out.println(i);
+        }
     }
 
     //takes each directory from the PATH environment and passes it to build fileSet
@@ -40,28 +50,44 @@ public class Utilities {
         }
     }
 
-    //TODO: figure out how to impliment levenshtienDistance methods
     private static void getLevDists() {
-        //I cannot figure out how to impliment the levenshtienDistance class :(
         smallestLevFiles = new String[5];
         smallestLevDists = new int[smallestLevFiles.length];
+        String userInput = "bubbleSort.java";//placeholder
         for(String flnm: fileSet) {
-            //int distance = levenshtienDistance.apply(flnm, userInput);
-            int distance = (int)(Math.random() * 100); //placeholder for lev distance
+            LevenshteinDistance levD = new LevenshteinDistance();
+            int distance = levD.apply(flnm, userInput);
             closest5(flnm, distance);           
-        }
-        for(String i: smallestLevFiles) {
-            System.out.println(i);
         }
     }
 
     private static void closest5(String flnm, int levDist) {
-       for(int i = 0; i < smallestLevFiles.length; i++) {
-            if(smallestLevFiles[i] == null || smallestLevDists[i] > levDist) { //if the given element is null or the lev distance is bigger than the given value
-                smallestLevDists[i] = levDist; //replace
-                smallestLevFiles[i] = flnm;
-                break;
+        int nullIndex = -1; //if the array(s) contain a null element, this will hold the index of where
+        for(int i = 0; i < smallestLevDists.length; i++) {
+            if(smallestLevDists[i] == 0) {
+                nullIndex = i;
             }
-       }
+        }
+        if(nullIndex == -1) { //the array(s) are "full"
+            int bigIndx = largestDist();
+            if(smallestLevDists[bigIndx] > levDist) {
+                smallestLevDists[bigIndx] = levDist;
+                smallestLevFiles[bigIndx] = flnm;
+            }
+        }
+        else { //array(s) still contain null elements
+            smallestLevDists[nullIndex] = levDist;
+            smallestLevFiles[nullIndex] = flnm;
+        }
+    }
+
+    private static int largestDist() { //returns the index at which the file name with the largest levdist is
+        int lgstIndex = 0;
+        for(int i = 1; i < smallestLevDists.length; i++) {
+            if(smallestLevDists[i] < smallestLevDists[lgstIndex]){
+                lgstIndex = i;
+            }
+        }
+        return lgstIndex;
     }
 }
