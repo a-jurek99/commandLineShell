@@ -10,10 +10,13 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 public class Utilities {
 
     private static HashSet<String> fileSet;
-    public static String[] smallestLevFiles;
+    private static String[] smallestLevFiles;
     private static int[] smallestLevDists;
 
-    //intakes a string of an attempted file name, parses through PATH and determines closest matches of files that do exist
+    /** intakes a string of an attempted file name, parses through PATH and determines closest matches of files that do exist
+    * @param userInput treated as an attempt by the user to enter a file name but was not found or does not exist
+    * @return didYouMean a string containg the names of 5 existing files in PATH that are determined to be the closest matches to userInput
+    */
     public static String findBestMatch(String userInput) {
         String path = System.getenv("PATH"); 
         String[] splitPath = path.split(":"); //string array of all directories in the PATH env
@@ -24,11 +27,6 @@ public class Utilities {
         getLevDists(userInput);
         String didYouMean = buildFileString();
         return didYouMean;
-    }
-
-    public static void main(String[] args) { //for testing
-        String test = findBestMatch("unbuntu");
-        System.out.println(test);
     }
 
     //takes each directory from the PATH environment and passes it to build fileSet
