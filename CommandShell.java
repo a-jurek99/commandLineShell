@@ -59,7 +59,6 @@ public class CommandShell {
                 int line = 1;
                 while (scan.hasNextLine()) {
                     String input = scan.nextLine();
-                    executor.addHistory(input);
                     Parser parser = new Parser(input);
                     ProcessNode root;
                     try {
