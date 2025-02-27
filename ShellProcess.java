@@ -25,7 +25,7 @@ public class ShellProcess extends ProcessNode {
     try {
       executable = executor.resolveCommand(command, arguments);
     } catch (Executor.ExecutionException ex) {
-      System.out.println("ERROR: " + ex.toString());
+      System.out.println("ERROR: " + ex.getMessage());
       return null;
     }
     return executable;
