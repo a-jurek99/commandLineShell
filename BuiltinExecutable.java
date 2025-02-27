@@ -1,17 +1,19 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Scanner;
 
 public class BuiltinExecutable implements Executable, Runnable {
   /**
    * A set of all the builtin commands available
    */
   public static final HashSet<String> ALL_BUILTINS = new HashSet<String>(
-      Arrays.asList("cd", "echo", "pwd", "history", "exit"));
+      Arrays.asList("cd", "echo", "pwd", "history", "source", "exit"));
 
   private String cmd; // The command to run
   private String[] args; // All the arguments of the command
@@ -108,6 +110,8 @@ public class BuiltinExecutable implements Executable, Runnable {
       output = pwd();
     } else if (cmd.equals("history")) {
       output = history();
+    } else if (cmd.equals("source")) {
+      output = source();
     } else if (cmd.equals("exit")) {
       output = exit();
     } else {
@@ -201,6 +205,57 @@ public class BuiltinExecutable implements Executable, Runnable {
     }
     exitValue = Optional.of(0);
     return new FileIterable(historyFile);
+  }
+
+  /**
+   * Run the source command, which reads a file and executes each line of it as a
+   * command
+   * 
+   * @return The output of the command
+   */
+  private Iterable<String> source() {
+    ArrayList<String> output = new ArrayList<>();
+    exitValue = Optional.of(0);
+    Executor executor = new Executor();
+    for (int i = 0; i < args.length; i++) {
+      File file = new File(args[i]);
+      if (!file.exists() || !file.canRead()) {
+        output.add("ERROR: File not readable: " + args[i] + "\n");
+        continue;
+      }
+      Scanner scan;
+      try {
+        scan = new Scanner(file);
+      } catch (FileNotFoundException ex) {
+        output.add("ERROR: File not found: " + args[i] + "\n");
+        continue;
+      }
+      int line = 1;
+      while (scan.hasNextLine()) {
+        String input = scan.nextLine();
+        executor.addHistory(input);
+        Parser parser = new Parser(input);
+        ProcessNode root;
+        try {
+          root = parser.parse();
+        } catch (Parser.SyntaxException ex) {
+          System.out.println("Syntax error in " + args[i] + " on line " + line + ":\n");
+          System.out.println(ex.toString() + "\n");
+          continue;
+        }
+        if (root == null) {
+          continue;
+        }
+        // System.out.println(root.toString());
+        boolean shouldExit = executor.execute(root);
+        if (shouldExit) {
+          break;
+        }
+        line += 1;
+      }
+      scan.close();
+    }
+    return output;
   }
 
   /**
