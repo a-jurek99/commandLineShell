@@ -127,7 +127,12 @@ public class BuiltinExecutable implements Executable, Runnable {
           exitValue = Optional.of(1);
           output.add("ERROR: Not a directory: " + dest);
         } else {
-          executor.cd(target.getAbsolutePath());
+          try {
+            executor.cd(target.getCanonicalPath());
+          } catch (IOException ex) {
+            exitValue = Optional.of(1);
+            output.add("ERROR: " + ex.getMessage());
+          }
         }
       }
     } else {
