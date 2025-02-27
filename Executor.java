@@ -1,3 +1,4 @@
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -6,7 +7,7 @@ import java.io.IOException;
  * Class in charge of executing commands, which are now represented by a tree of
  * ProcessNodes. It is also responsible for tracking execution state.
  */
-public class Executor {
+public class Executor implements Closeable {
   private String cwd; // The current working directory of the process
   private String prevCwd; // The previous working directory of the process, used for "cd -"
   private boolean shouldExit; // If the shell should exit after completing the current command
@@ -172,6 +173,12 @@ public class Executor {
       return null;
     }
     return historyFile;
+  }
+
+  @Override
+  public void close() throws IOException {
+    historyWriter.flush();
+    historyWriter.close();
   }
 
   /**

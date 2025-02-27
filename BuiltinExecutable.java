@@ -254,6 +254,11 @@ public class BuiltinExecutable implements Executable, Runnable {
       }
       scan.close();
     }
+    try {
+      executor.close();
+    } catch (IOException ex) {
+      // Just ignore it
+    }
     return output;
   }
 

@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -41,6 +42,11 @@ public class CommandShell {
                 }
             }
             scan.close();
+            try {
+                executor.close();
+            } catch (IOException ex) {
+                // Just ignore it
+            }
         } else {
             Executor executor = new Executor();
             for (int i = 0; i < args.length; i++) {
@@ -79,6 +85,11 @@ public class CommandShell {
                     line += 1;
                 }
                 scan.close();
+            }
+            try {
+                executor.close();
+            } catch (IOException ex) {
+                // Just ignore it
             }
         }
     }
