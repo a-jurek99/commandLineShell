@@ -7,17 +7,27 @@ import java.util.HashSet;
 import java.util.Optional;
 
 public class BuiltinExecutable implements Executable, Runnable {
-  public static final HashSet<String> ALL_BULTINS = new HashSet<String>(
+  /**
+   * A set of all the builtin commands available
+   */
+  public static final HashSet<String> ALL_BUILTINS = new HashSet<String>(
       Arrays.asList("cd", "echo", "pwd", "history", "exit"));
 
-  private String cmd;
-  private String[] args;
-  private Thread thread;
-  private Optional<Integer> exitValue;
-  private Executor executor;
-  private String outputFile;
-  private boolean appendOutput;
+  private String cmd; // The command to run
+  private String[] args; // All the arguments of the command
+  private Thread thread; // The thread that the command is executed in
+  private Optional<Integer> exitValue; // The return value of the command
+  private Executor executor; // The executor that ran this command
+  private String outputFile; // A file to direct output to
+  private boolean appendOutput; // True to append output to an existing file, false to overwrite
 
+  /**
+   * Construct a BuiltinExecutable
+   * 
+   * @param cmd      The command to run. Must be a member of ALL_BUILTINs
+   * @param args     The arguments to the command
+   * @param executor The executor that is running this command
+   */
   public BuiltinExecutable(String cmd, String[] args, Executor executor) {
     this.cmd = cmd;
     this.args = args;
@@ -51,6 +61,11 @@ public class BuiltinExecutable implements Executable, Runnable {
   public void redirectInput(String file) {
   }
 
+  /**
+   * Write output to the appropriate place
+   * 
+   * @param output The output that needs to be written
+   */
   private void writeOutput(Iterable<String> output) {
     if (outputFile == null) {
       // Empty outputFile means output to the terminal
@@ -102,6 +117,11 @@ public class BuiltinExecutable implements Executable, Runnable {
     writeOutput(output);
   }
 
+  /**
+   * Run the cd command, which changes the cwd
+   * 
+   * @return The output of the command
+   */
   private Iterable<String> cd() {
     ArrayList<String> output = new ArrayList<>(1);
     exitValue = Optional.of(0);
@@ -143,6 +163,11 @@ public class BuiltinExecutable implements Executable, Runnable {
     return output;
   }
 
+  /**
+   * Run the echo command, which prints it's input
+   * 
+   * @return The output of the command
+   */
   private Iterable<String> echo() {
     exitValue = Optional.of(0);
     ArrayList<String> output = new ArrayList<>();
@@ -153,11 +178,21 @@ public class BuiltinExecutable implements Executable, Runnable {
     return output;
   }
 
+  /**
+   * Run the pwd command, which prints the cwd
+   * 
+   * @return The output of the command
+   */
   private Iterable<String> pwd() {
     exitValue = Optional.of(0);
     return Arrays.asList(executor.pwd(), "\n");
   }
 
+  /**
+   * Run the history command, which prints out the previous commands entered
+   * 
+   * @return The output of the command
+   */
   private Iterable<String> history() {
     File historyFile = executor.readHistory();
     if (historyFile == null) {
@@ -168,6 +203,11 @@ public class BuiltinExecutable implements Executable, Runnable {
     return new FileIterable(historyFile);
   }
 
+  /**
+   * Run the exit command, which exits the shell
+   * 
+   * @return The output of the command
+   */
   private Iterable<String> exit() {
     exitValue = Optional.of(0);
     executor.exit();

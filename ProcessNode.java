@@ -4,13 +4,25 @@
  * the root node of the tree should have the background flag set.
  */
 public abstract class ProcessNode {
-  String inputFile;
-  String outputFile;
-  boolean appendOutput;
-  boolean background;
+  private String inputFile; // The file to take input from
+  private String outputFile; // The file to output to
+  private boolean appendOutput; // True to append output to the file, false to overwrite it
+  public boolean background; // True to run this process in the background, false to not
 
-  abstract Executable resolve(Executor executor);
+  /**
+   * Resolve this ProcessNode into an Executable
+   * 
+   * @param executor The Executor of this command
+   * @return An unfinished Executable representing this node
+   */
+  protected abstract Executable resolve(Executor executor);
 
+  /**
+   * Turn this ProcessNode into an Executable, ready to call executable.start()
+   * 
+   * @param executor The Executor of this command
+   * @return A finished Executable representing this node
+   */
   public Executable execute(Executor executor) {
     Executable executable = this.resolve(executor);
     if (executable == null)
@@ -55,7 +67,12 @@ public abstract class ProcessNode {
     this.background = background;
   }
 
-  abstract void buildString(StringBuilder builder);
+  /**
+   * Construct the string representation of this node
+   * 
+   * @param builder The existing builder
+   */
+  protected abstract void buildString(StringBuilder builder);
 
   @Override
   public String toString() {

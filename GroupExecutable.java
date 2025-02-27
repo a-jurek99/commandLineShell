@@ -2,12 +2,20 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
+/**
+ * Represents a group of executables, either in parallel or not
+ */
 public class GroupExecutable implements Executable {
+  private Executable[] members; // The executables that make up this group
+  private ProcessGroup.Type type; // The type of group
+  private File[] tempFiles; // Temporary files to handle pipes
 
-  private Executable[] members;
-  private ProcessGroup.Type type;
-  private File[] tempFiles;
-
+  /**
+   * Create a group executable
+   * 
+   * @param type    The type of the group
+   * @param members The members of the group
+   */
   public GroupExecutable(ProcessGroup.Type type, Executable[] members) {
     this.type = type;
     this.members = members;
@@ -16,6 +24,9 @@ public class GroupExecutable implements Executable {
   @Override
   public void start() throws Executor.ExecutionException {
     if (type == ProcessGroup.Type.Pipe) {
+      // We handle pipes by creating temporary files between each executable and
+      // directing the output of the previous process into the file and the input of
+      // the next process from the file
       tempFiles = new File[members.length - 1];
       for (int i = 1; i < members.length; i++) {
         try {
@@ -30,6 +41,8 @@ public class GroupExecutable implements Executable {
     if (type == ProcessGroup.Type.Parallel) {
       for (int i = 0; i < members.length; i++) {
         members[i].start();
+        // Print information about the threads that were started, to help with killing
+        // them if desired
         System.out.println(members[i].threadInfo());
       }
     } else {

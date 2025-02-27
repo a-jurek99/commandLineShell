@@ -3,9 +3,14 @@ import java.io.IOException;
 import java.util.Optional;
 
 public class FileExecutable implements Executable {
-  private ProcessBuilder builder;
-  private Process process;
+  private ProcessBuilder builder; // Used to build the process
+  private Process process; // The process that this executable started
 
+  /**
+   * Create a file executable
+   * 
+   * @param file The path to the file to execute
+   */
   public FileExecutable(String file, String[] args, Executor executor) {
     String[] command = new String[args.length + 1];
     command[0] = file;

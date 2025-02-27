@@ -20,7 +20,7 @@ public class ShellProcess extends ProcessNode {
   }
 
   @Override
-  Executable resolve(Executor executor) {
+  protected Executable resolve(Executor executor) {
     Executable executable;
     try {
       executable = executor.resolveCommand(command, arguments);
@@ -32,7 +32,7 @@ public class ShellProcess extends ProcessNode {
   }
 
   @Override
-  void buildString(StringBuilder builder) {
+  protected void buildString(StringBuilder builder) {
     builder.append(command);
     for (int i = 0; i < arguments.length; i++) {
       builder.append(' ');

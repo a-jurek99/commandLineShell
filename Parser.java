@@ -10,14 +10,13 @@ import java.util.ArrayList;
  * use a seperate tokenizer, instead tokenizing the input on demand
  */
 public class Parser {
-  String input;
-  int pos;
-  int parenLevel;
-  boolean background;
-  Token curToken;
-  // Used to tell ArrayList method which array type to return
-  final String[] STRING_ARR = new String[0];
-  final ProcessNode[] NODE_ARR = new ProcessNode[0];
+  private String input; // The input string
+  private int pos; // The current position in the input
+  private int parenLevel; // How many parens deep we are
+  private boolean background; // Track if this command is meant to run in the background
+  private Token curToken; // The current token we are on
+  final String[] STRING_ARR = new String[0]; // Used to tell ArrayList method which array type to return
+  final ProcessNode[] NODE_ARR = new ProcessNode[0]; // Used to tell ArrayList method which array type to return
 
   /**
    * Construct a parser
@@ -31,6 +30,9 @@ public class Parser {
 
   /**
    * Parse the input into a process tree
+   * 
+   * @throws SyntaxException Throw if parsing fails due to malformed input
+   * @return The root node of the resulting tree
    */
   public ProcessNode parse() throws SyntaxException {
     this.next();
@@ -45,8 +47,11 @@ public class Parser {
 
   /**
    * Parse something that could either be a group or an expression
+   * 
+   * @throws SyntaxException Throw if parsing fails due to malformed input
+   * @return Either the group node or the expression node
    */
-  ProcessNode parseMaybeGroup() throws SyntaxException {
+  private ProcessNode parseMaybeGroup() throws SyntaxException {
     ProcessNode left = this.parseExpression();
     if (curToken == null) {
       return left;
@@ -62,8 +67,11 @@ public class Parser {
   /**
    * Parse an expression, which is either a group enclosed in parentheses or a
    * command with optional redirects
+   * 
+   * @throws SyntaxException Throw if parsing fails due to malformed input
+   * @return The expression node
    */
-  ProcessNode parseExpression() throws SyntaxException {
+  private ProcessNode parseExpression() throws SyntaxException {
     ProcessNode node;
     // If we find an open paren, go back to the top level (parseMaybeGroup), which
     // handles the closing
@@ -84,8 +92,11 @@ public class Parser {
 
   /**
    * Parse a command, which is just a series of one or more strings
+   * 
+   * @throws SyntaxException Throw if parsing fails due to malformed input
+   * @return The node for the command
    */
-  ProcessNode parseCommand() throws SyntaxException {
+  private ProcessNode parseCommand() throws SyntaxException {
     ArrayList<String> args = new ArrayList<>();
     while (curToken != null && curToken.type == Token.Type.String) {
       args.add(curToken.value);
@@ -97,8 +108,11 @@ public class Parser {
   /**
    * Parse the redirects for another node, which is a series of '<', '>', or '>>'
    * with files after each
+   * 
+   * @param node The node to associate the redirects with
+   * @throws SyntaxException Throw if parsing fails due to malformed input
    */
-  void maybeParseRedirects(ProcessNode node) throws SyntaxException {
+  private void maybeParseRedirects(ProcessNode node) throws SyntaxException {
     while (curToken != null && curToken.isRedirect()) {
       Token.Type type = curToken.type;
       this.next();
@@ -117,8 +131,12 @@ public class Parser {
   /**
    * Parse a group, which is a series of expressions seperated by '&', '&&', or
    * '|'
+   * 
+   * @param left The left side of the group
+   * @throws SyntaxException Throw if parsing fails due to malformed input
+   * @return The group node
    */
-  ProcessNode parseGroup(ProcessNode left) throws SyntaxException {
+  private ProcessNode parseGroup(ProcessNode left) throws SyntaxException {
     ArrayList<ProcessNode> members = new ArrayList<>();
     members.add(left);
     ProcessGroup.Type groupType = getGroupType(curToken.type);
@@ -163,6 +181,8 @@ public class Parser {
    * Get the type of the group formed by a given token type
    * 
    * @param type The type of the token forming the group
+   * @throws SyntaxException If the token type is not a group type
+   * @return The type of the group
    */
   ProcessGroup.Type getGroupType(Token.Type type) throws SyntaxException {
     switch (type) {
@@ -179,6 +199,8 @@ public class Parser {
 
   /**
    * Make an unexpected token syntax exception based on the current token
+   * 
+   * @return A SyntaxException that says the current token is unexpected
    */
   SyntaxException makeUnexpectedToken() {
     return new SyntaxException("Unexpected token '" + curToken.value + "'.", pos - curToken.value.length(), input);
@@ -186,15 +208,19 @@ public class Parser {
 
   /**
    * Move to the next token in the input stream
+   * 
+   * @return The next token, which is also curToken
    */
-  Token next() {
-    if (pos >= input.length())
+  private Token next() {
+    if (pos >= input.length()) {
       return curToken = null;
+    }
     char chr = input.charAt(pos);
     while (chr == ' ') {
       pos++;
-      if (pos >= input.length())
+      if (pos >= input.length()) {
         return curToken = null;
+      }
       chr = input.charAt(pos);
     }
     switch (chr) {
@@ -232,8 +258,9 @@ public class Parser {
         char prevC = c;
         while (prevC == '\\' || c != chr) {
           pos++;
-          if (pos >= input.length())
+          if (pos >= input.length()) {
             break;
+          }
           prevC = c;
           c = input.charAt(pos);
         }
@@ -246,8 +273,9 @@ public class Parser {
         char c = input.charAt(pos);
         while (c != ' ' && c != '(' && c != ')' && c != '&' && c != '<' && c != '>') {
           pos++;
-          if (pos >= input.length())
+          if (pos >= input.length()) {
             break;
+          }
           c = input.charAt(pos);
         }
         return curToken = new Token(Token.Type.String, input.substring(startPos, pos));
@@ -268,8 +296,8 @@ public class Parser {
       CloseParen, // ')' Close a parenthesized group
     }
 
-    Type type;
-    String value;
+    Type type; // The type of this token
+    String value; // The value of this token
 
     Token(Type type, String value) {
       this.type = type;
@@ -283,6 +311,8 @@ public class Parser {
 
     /**
      * Does this token redirect input or output?
+     * 
+     * @return True if this token is a redirect
      */
     boolean isRedirect() {
       return type == Type.RedirectInput || type == Type.RedirectOutput || type == Type.RedirectOutputAppend;
@@ -290,6 +320,8 @@ public class Parser {
 
     /**
      * Does this token form groups?
+     * 
+     * @return True if this token is a group
      */
     boolean isGrouping() {
       return type == Type.Pipe || type == Type.ExecuteParallel || type == Type.ExecuteSequential;
@@ -305,8 +337,8 @@ public class Parser {
    * Represents an issue with the syntax of the passed input
    */
   public static class SyntaxException extends Exception {
-    String input;
-    int pos;
+    private String input;
+    private int pos;
 
     SyntaxException(String message, int pos, String input) {
       super(message);
