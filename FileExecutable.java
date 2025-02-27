@@ -58,6 +58,6 @@ public class FileExecutable implements Executable {
 
   @Override
   public String threadInfo() {
-    return process.toString();
+    return builder.command().toString();
   }
 }
