@@ -15,20 +15,20 @@ public class Utilities {
 
     //intakes a string of an attempted file name, parses through PATH and determines closest matches of files that do exist
     public static String[] findBestMatch(String userInput) {
-        String path = System.getenv("PATH");
-        String[] splitPath = path.split(":");
+        String path = System.getenv("PATH"); 
+        String[] splitPath = path.split(":"); //string array of all directories in the PATH env
         fileSet = new HashSet<>();
-        parseDir(splitPath);
-        smallestLevFiles = new String[5];
+        parseDir(splitPath); //build the string set of each file name
+        smallestLevFiles = new String[5]; //will hold the 5 closest existing file name matches based on lev distance
         smallestLevDists = new int[smallestLevFiles.length];
-        getLevDists();
+        getLevDists(userInput);
         return smallestLevFiles;
     }
 
     public static void main(String[] args) { //for testing
-        String[] test = findBestMatch("bubbbles.scr");
+        String[] test = findBestMatch("unbuntu");
         for(String i: test) {
-            System.out.println(i);
+            System.out.println(i);  
         }
     }
 
@@ -50,17 +50,16 @@ public class Utilities {
         }
     }
 
-    private static void getLevDists() {
-        smallestLevFiles = new String[5];
-        smallestLevDists = new int[smallestLevFiles.length];
-        String userInput = "bubbleSort.java";//placeholder
+    //calculate the levenshtein distance between the user input and every parsed file name from PATH
+    private static void getLevDists(String userInput) {
         for(String flnm: fileSet) {
             LevenshteinDistance levD = new LevenshteinDistance();
             int distance = levD.apply(flnm, userInput);
-            closest5(flnm, distance);           
+            closest5(flnm, distance);  //compare with current closest matches
         }
     }
 
+    //
     private static void closest5(String flnm, int levDist) {
         int nullIndex = -1; //if the array(s) contain a null element, this will hold the index of where
         for(int i = 0; i < smallestLevDists.length; i++) {
@@ -69,7 +68,7 @@ public class Utilities {
             }
         }
         if(nullIndex == -1) { //the array(s) are "full"
-            int bigIndx = largestDist();
+            int bigIndx = largestDist(); //indicates which index holds the element with the largest lev distance
             if(smallestLevDists[bigIndx] > levDist) {
                 smallestLevDists[bigIndx] = levDist;
                 smallestLevFiles[bigIndx] = flnm;
@@ -81,7 +80,8 @@ public class Utilities {
         }
     }
 
-    private static int largestDist() { //returns the index at which the file name with the largest levdist is
+    //finds the index of the element with the largest levenshtein distance, returns that index to be compared with user input
+    private static int largestDist() { 
         int lgstIndex = 0;
         for(int i = 1; i < smallestLevDists.length; i++) {
             if(smallestLevDists[i] < smallestLevDists[lgstIndex]){
