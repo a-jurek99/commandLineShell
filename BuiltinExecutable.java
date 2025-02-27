@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public class BuiltinExecutable implements Executable, Runnable {
   public static final HashSet<String> ALL_BULTINS = new HashSet<String>(
-      Arrays.asList("cd", "echo", "pwd", "history", "help", "exit"));
+      Arrays.asList("cd", "echo", "pwd", "history", "exit"));
 
   private String cmd;
   private String[] args;
@@ -93,8 +93,6 @@ public class BuiltinExecutable implements Executable, Runnable {
       output = pwd();
     } else if (cmd.equals("history")) {
       output = history();
-    } else if (cmd.equals("help")) {
-      output = help();
     } else if (cmd.equals("exit")) {
       output = exit();
     } else {
@@ -168,11 +166,6 @@ public class BuiltinExecutable implements Executable, Runnable {
     }
     exitValue = Optional.of(0);
     return new FileIterable(historyFile);
-  }
-
-  private Iterable<String> help() {
-    exitValue = Optional.of(1);
-    return Arrays.asList("ERROR: Not implemented: help\n");
   }
 
   private Iterable<String> exit() {
