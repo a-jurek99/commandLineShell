@@ -60,18 +60,11 @@ public class BuiltinExecutable implements Executable, Runnable {
     } else {
       try {
         File file = new File(outputFile);
-        if (file.exists()) {
-          // If the file exists and we are not appending, clear it's contents by deleting
-          // it and remaking it
-          if (!appendOutput) {
-            file.delete();
-            file.createNewFile();
-          }
-        } else {
+        if (!file.exists()) {
           // If the file does not exist, create it
           file.createNewFile();
         }
-        FileWriter writer = new FileWriter(file);
+        FileWriter writer = new FileWriter(file, appendOutput);
         for (String str : output) {
           writer.write(str);
         }
