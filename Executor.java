@@ -20,6 +20,7 @@ public class Executor {
    */
   public boolean execute(ProcessNode rootNode) {
     Executable root = rootNode.execute(this);
+    if(root == null) return false;
     try {
       root.start();
     } catch (Executor.ExecutionException ex) {
