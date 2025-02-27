@@ -57,7 +57,7 @@ public class Executor {
         }
       }
     }
-    throw new ExecutionException("Command not found: " + cmd);
+    throw new ExecutionException("Command not found: " + cmd + Utilities.findBestMatch(cmd));
   }
 
   /**
