@@ -5,13 +5,11 @@ import java.io.File;
  * ProcessNodes
  */
 public class Executor {
-  private ProcessNode rootNode;
   private String cwd;
   private String prevCwd;
   private boolean shouldExit;
 
-  public Executor(ProcessNode root) {
-    rootNode = root;
+  public Executor() {
     cwd = prevCwd = System.getProperty("user.dir");
   }
 
@@ -20,7 +18,7 @@ public class Executor {
    * 
    * @return True to exit, false to continue running
    */
-  public boolean execute() {
+  public boolean execute(ProcessNode rootNode) {
     Executable root = rootNode.execute(this);
     try {
       root.start();

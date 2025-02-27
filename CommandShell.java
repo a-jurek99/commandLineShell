@@ -3,6 +3,7 @@ import java.util.Scanner;
 public class CommandShell {
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
+        Executor executor = new Executor();
         while (true) {
             System.out.print("> ");
             String userInput = scan.nextLine();
@@ -18,8 +19,7 @@ public class CommandShell {
                 continue;
             }
             // System.out.println(root.toString());
-            Executor executor = new Executor(root);
-            boolean shouldExit = executor.execute();
+            boolean shouldExit = executor.execute(root);
             if (shouldExit) {
                 break;
             }

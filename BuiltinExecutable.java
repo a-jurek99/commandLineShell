@@ -154,7 +154,7 @@ public class BuiltinExecutable implements Executable, Runnable {
 
   private Iterable<String> pwd() {
     exitValue = Optional.of(0);
-    return Arrays.asList(executor.pwd());
+    return Arrays.asList(executor.pwd(), "\n");
   }
 
   private Iterable<String> history() {
